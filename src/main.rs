@@ -1,7 +1,8 @@
-use poise::serenity_prelude as serenity;
-struct Data {} // User data, which is stored and accessible in all command invocations
+use poise::serenity_prelude::{self as serenity, CreateMessage};
+struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
+use serde::Deserialize;
 
 /// pop a booster
 #[poise::command(slash_command)]
@@ -19,6 +20,53 @@ async fn pop(
     Ok(())
 }
 
+#[derive(Debug, Deserialize)]
+struct Location {
+    location: String,
+}
+
+#[derive(Deserialize)]
+struct AuthResponse {
+    data: Location,
+}
+
+/// authenticate your wargaming account
+#[poise::command(slash_command)]
+async fn auth(
+    ctx: Context<'_>,
+    #[description = "Region"]
+    #[choices("NA", "EU", "ASIA")]
+    region: &'static str,
+) -> Result<(), Error> {
+
+    let extension = match region {
+        "EU" => "eu",
+        "ASIA" => "asia",
+        _ => "com"
+    };
+
+    let url = format!("https://api.worldoftanks.{}/wot/auth/login/?application_id=ef746aff128156bd7446a669f673bef7&display=page&expires_at=1030000&nofollow=1", extension);
+
+    let res = reqwest::get(url).await?;
+
+    if res.status().is_success() {
+        // Parse the JSON response
+        let api_response = res.json::<AuthResponse>().await?;
+
+        let msg = CreateMessage::new()
+            .content(format!("[Click to authenticate!]({})", api_response.data.location));
+    
+        ctx.author().direct_message(&ctx.serenity_context(), msg).await?;
+    
+        ctx.say("Check your DMs for an authentication link!").await?;
+
+    } else {
+        println!("Request failed with status: {}", res.status());
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
 
@@ -29,7 +77,7 @@ async fn main() {
 
     let framework= poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![pop()],
+            commands: vec![pop(), auth()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

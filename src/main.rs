@@ -36,7 +36,7 @@ async fn auth(
     ctx: Context<'_>,
     #[description = "Region"]
     #[choices("NA", "EU", "ASIA")]
-    region: &'static str,
+    region: &str,
 ) -> Result<(), Error> {
 
     let extension = match region {
@@ -88,8 +88,12 @@ async fn main() {
         })
         .build();
 
-    let client = serenity::ClientBuilder::new(token, intents)
+    serenity::ClientBuilder::new(token, intents)
         .framework(framework)
-        .await;
-    client.unwrap().start().await.unwrap();
+        .await
+        .unwrap()
+        .start()
+        .await
+        .unwrap();
+
 }

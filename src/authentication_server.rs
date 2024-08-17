@@ -1,17 +1,27 @@
 use rouille::Response;
-use std::{collections::HashMap, fs};
+use std::collections::HashMap;
 
 pub enum ParseResult {
-    Success(String),
+    //       token    name   exp
+    Success((String, String, u64)),
     Error(String),
     NoOp,
 }
 
 pub struct AuthServer {
-    discord_wg_id_associations: HashMap<String, String>,
+    //                        dsc      wg
+    id_associations: HashMap<String, String>,
 }
 
 impl AuthServer {
+    pub fn new() -> Self {
+        // init with query of SQL db
+
+        AuthServer {
+            id_associations: HashMap::new(),
+        }
+    }
+
     pub fn parse_http_payload(payload: &rouille::Request) -> ParseResult {
         if payload.raw_query_string().is_empty() {
             return ParseResult::NoOp;
@@ -41,11 +51,12 @@ impl AuthServer {
             .collect::<Vec<(String, String)>>();
         println!("payload has been SPLIT: {:?}", payload_split);
 
-        // <Vec<(String, String)
-        //   |     |        |-- Value
-        //   |     |----------- Key
-        //   |----------------- Tokens
+        // Vec<(String, String)>
+        //  |     |        |-- Value
+        //  |     |----------- Key
+        //  |----------------- Tokens
 
+        let mut result = ("".to_string(), "".to_string(), 0);
         for token in payload_split {
             match token.0.as_str() {
                 "status" => {
@@ -56,31 +67,41 @@ impl AuthServer {
                         println!("Received ok status from WG API");
                     }
                 }
+                "access_token" => result.0 = token.1,
+                "nickname" => result.1 = token.1,
+                "expires_at" => result.2 = token.1.parse().unwrap_or_default(),
                 _ => println!("Found {}: {}", token.0, token.1),
             }
         }
         println!("payload has been ITERATED");
 
-        return ParseResult::Success("Player ID".to_string()); // TODO: Insert Player ID
+        return ParseResult::Success(result);
     }
 
-    pub async fn listen_for_auth_responses(&self) {
+    pub async fn start_response_server(&self) {
         rouille::start_server(
             "0.0.0.0:5000",
             move |request| match Self::parse_http_payload(request) {
-                ParseResult::Success(name) => {
+                ParseResult::Success(result) => {
                     // log authentication
-                    Response::text(format!("Thanks, {}! You're authenticated.", name))
+                    Response::html(format!(include_str!("../200.html"), result.1, result.2))
                 }
-                ParseResult::Error(err) => Response::text(format!("Error authenticating: {}", err)),
+                ParseResult::Error(err) => {
+                    Response::text(format!(include_str!("../404.html"), err))
+                }
                 ParseResult::NoOp => Response::empty_204(),
             },
         );
     }
+}
 
-    pub fn start_server(&self) {
-        // this is broken
-        //tokio::spawn(self.listen_for_auth_responses());
-        // do I need to have 3 threads (main, listener, authentication handler)? the main thread is the "discord handler", so it should not be responsible for handling player ID associations.
+#[cfg(test)]
+mod tests {
+    #[test]
+    pub fn test_html_format() {
+        println!(
+            "{}",
+            format!(include_str!("../200.html"), "SanguineParadise", 21403153)
+        );
     }
 }

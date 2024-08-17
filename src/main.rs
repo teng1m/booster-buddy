@@ -1,24 +1,13 @@
 mod authentication_server;
 mod commands;
+use authentication_server::AuthServer;
 use commands::{auth, pop, Data};
 
 use poise::serenity_prelude::{self as serenity};
 
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-struct Location {
-    location: String,
-}
-
-#[derive(Deserialize)]
-struct AuthResponse {
-    data: Location,
-}
-
 #[tokio::main]
 async fn main() {
-    tokio::spawn(authentication_server::listen_for_auth_responses());
+    AuthServer::new().start_response_server();
 
     dotenv::dotenv().ok();
     let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment");

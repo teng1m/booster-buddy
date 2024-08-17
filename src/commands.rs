@@ -1,10 +1,8 @@
 use poise::serenity_prelude::CreateMessage;
 
-use crate::AuthResponse;
-
 type Error = Box<dyn std::error::Error + Send + Sync>;
+pub struct Data;
 type Context<'a> = poise::Context<'a, Data, Error>;
-pub struct Data {}
 
 /// pop a booster
 #[poise::command(slash_command)]
@@ -37,28 +35,16 @@ pub async fn auth(
         _ => "com",
     };
 
-    let url = format!("https://api.worldoftanks.{}/wot/auth/login/?application_id=ef746aff128156bd7446a669f673bef7&display=page&expires_at=1030000&nofollow=1", extension);
+    let url = format!("https://api.worldoftanks.{}/wot/auth/login/?application_id=bd09ad6840803e46880ac67012edf241&redirect_uri=localhost:5000", extension);
 
-    let res = reqwest::get(url).await?;
+    ctx.say("Check your DMs for an authentication link!")
+        .await?;
 
-    if res.status().is_success() {
-        // Parse the JSON response
-        let api_response = res.json::<AuthResponse>().await?;
+    let msg = CreateMessage::new().content(format!("[Click to authenticate!]\n\n{}", url));
 
-        let msg = CreateMessage::new().content(format!(
-            "[Click to authenticate!]({})",
-            api_response.data.location
-        ));
-
-        ctx.author()
-            .direct_message(&ctx.serenity_context(), msg)
-            .await?;
-
-        ctx.say("Check your DMs for an authentication link!")
-            .await?;
-    } else {
-        println!("Request failed with status: {}", res.status());
-    }
+    ctx.author()
+        .direct_message(&ctx.serenity_context(), msg)
+        .await?;
 
     Ok(())
 }

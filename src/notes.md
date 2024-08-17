@@ -1,0 +1,16 @@
+- need hashmap of discord user ID's and WG auth ID's 
+    - get from DM of auth
+
+- auth steps:
+    - send user DM with WG auth link 
+    - user opens DM 
+    - logs in
+    - wg sends information to redirect uri (ip/port of server)
+    - thread listening on port that makes association with Discord/WG Auth ID's
+        - redirect ID is this port on this IP
+            - security nightmare, don't get your router popped lmao
+            - what if in theory we had a DNS name??!
+                - doesn't work, still traceable
+                    - idfk hopefully mozzy never makes it back in fines 
+                        - wait I agreed to host this piece of shit 
+                            - Duangla I changed my mind :|

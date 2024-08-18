@@ -1,13 +1,16 @@
 mod authentication_server;
 mod commands;
-use authentication_server::AuthServer;
+mod sql_manager;
+
 use commands::{auth, pop, Data};
 
 use poise::serenity_prelude::{self as serenity};
 
 #[tokio::main]
 async fn main() {
-    AuthServer::new().start_response_server();
+    // TODO you were here
+    let id_associations = sql_manager::load_from_db().unwrap_or(vec![]);
+    authentication_server::start_response_server();
 
     dotenv::dotenv().ok();
     let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
